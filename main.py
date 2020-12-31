@@ -3,7 +3,7 @@ from math import floor, sqrt
 from functools import reduce
 from operator import add
 from Photo import Photo
-from os import listdir, remove
+from os import listdir, remove, path, mkdir
 from PIL import Image, ImageChops
 from tkinter.font import Font
 from tkinter.filedialog import askopenfilenames, askopenfilename, askdirectory
@@ -224,19 +224,32 @@ def addImages(lst):
     add_error_lst = []
 
     # list of existing images
-    cache = [f for f in listdir("Images/") if ".png" in f]
+    cache = [f.split(".")[0] for f in listdir("Images/") if (".png" in f or ".jpg" in f or ".jpeg" in f)]
     lst2 = []
 
-    for path in lst:
+    #remove duplicates
+    newLst = []
+    names = []
+    for p in lst:
+        n = p.split("/")[-1].split(".")[0]
+        if n not in names:
+            names.append(n)
+            newLst.append(p)
+        else:
+            add_error = True
+            add_error_lst.append(p.split("/")[-1])
+
+    #process and add the images
+    for path in newLst:
         name = path.split("/")[-1]
-        if name not in cache: #new image
-            images.append(Photo(path=path))
+        if name.split(".")[0] not in cache: #new image
+            im = Image.open(path)
+            im.save("Images/" + name.split(".")[0] + ".png")
+
+            images.append(Photo(path="Images/" + name.split(".")[0] + ".png"))
             lst2.append(images[-1])
 
-            im = Image.open(path)
-            im.save("Images/" + name)
-
-            # calculates the values needed for image searches
+            # calculates the values needed for image searching
             comparisonDict[images[-1].name] = compare(searchImage, images[-1])
         else: # existing images, shows in the menu
             add_error = True
@@ -289,6 +302,14 @@ window.setBackground("black")
 window.bind("<Motion>", motion)
 window.bind("<MouseWheel>", mouse_wheel)
 window.master.protocol("WM_DELETE_WINDOW", onClose)
+window.master.TK_SILENCE_DEPRECATION = 1
+
+#create directories
+rootPath = path.dirname(path.abspath(__file__))
+rootFiles = listdir(rootPath)
+for name in ["Thumbnails", "Images"]:
+    if name not in rootFiles:
+        mkdir(rootPath + "/" + name)
 
 #initialize the images and comparisons
 images = loadImages()
@@ -338,7 +359,7 @@ while windowOpen:
     if click is not None:
         if inRect(click, Point(0, 0), Point(wSize[0], 290)): #menu click
             if inRect(click, Point(25, 25), Point(150, 65)): #add
-                files = askopenfilenames(title="Select Images", filetypes=(("png files","*.png"),("all files","*.*")))
+                files = askopenfilenames(title="Select Images", filetypes=(("png files","*.png"), ("jpg files","*.jpg"), ("jpeg files","*.jpeg"), ("all files","*.*")))
                 addImages(files)
                 filteredImages = filterImages()
             if inRect(click, Point(220, 25), Point(380, 65)): #delete
@@ -346,6 +367,7 @@ while windowOpen:
                 for image in selectedImages:
                     images.remove(image)
                     remove("Images/" + image.name)
+                    remove("Thumbnails/" + image.name)
                 filteredImages = filterImages()
             if inRect(click, Point(450, 25), Point(580, 65)): #deselect
                 for image in images:
@@ -359,7 +381,7 @@ while windowOpen:
                         im.save(path + "/" + image.name)
             if inRect(click, Point(900, 25), Point(1030, 65)): #image search
                 try:
-                    searchImage = Image.open(askopenfilename(title="Select Image", filetypes=(("png files","*.png"),("all files","*.*"))))
+                    searchImage = Image.open(askopenfilename(title="Select Image", filetypes=(("png files","*.png"), ("jpg files","*.jpg"), ("jpeg files","*.jpeg"), ("all files","*.*"))))
                     comparisonDict = createComparisons(searchImage)
                     filteredImages = filterImages()
                 except(AttributeError):
