@@ -1,13 +1,13 @@
 # Image-Repository
 
 # Installation:
-1. Be sure to use **python 3.7+**
+1. Be sure to use **python 3.7**
 2. Download the three included files into a single folder
 3. Install **Pillow 8.0.1**, making sure it is linked to the correct python version
 
 # Usage:
 **Adding Images**:
-Click the *Add Images* button and select as many PNG files as you wish
+Click the *Add Images* button and select as many PNG or JPG files as you wish
 
 **Selecting Images**:
 Simply click on any images you wish to select, and they will be highlighted in green and the names will be listed in the top menu
