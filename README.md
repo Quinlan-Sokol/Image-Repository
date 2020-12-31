@@ -1,10 +1,9 @@
 # Image-Repository
 
 # Installation:
-1. Be sure to use **python 3.7**
+1. Be sure to use **python 3.7+**
 2. Download the three included files into a single folder
-3. Create two new folders named **Thumbnails** and **Images** in the same folder
-4. Install **Pillow 8.0.1**, making sure it is linked to the correct python version
+3. Install **Pillow 8.0.1**, making sure it is linked to the correct python version
 
 # Usage:
 **Adding Images**:
