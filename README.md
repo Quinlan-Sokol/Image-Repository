@@ -1,7 +1,7 @@
 # Image-Repository
 
 # Installation:
-1. Be sure to use **python 3.7**
+1. Download **Python 3.7** from **python.org**
 2. Download the three included files into a single folder
 3. Install **Pillow 8.0.1**, making sure it is linked to the correct python version
 
