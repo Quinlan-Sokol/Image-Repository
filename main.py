@@ -8,7 +8,9 @@ from PIL import Image, ImageChops
 from tkinter.font import Font
 from tkinter.filedialog import askopenfilenames, askopenfilename, askdirectory
 
+# window size [width, height]
 wSize = (1500, 1000)
+
 mousePos = Point(0, 0)
 scrollCount = 0
 prevScroll = 0
@@ -22,6 +24,7 @@ searchImage = None
 
 add_error = False
 add_error_lst = []
+confirmDelete = False
 
 hoverAdd = False
 hoverDelete = False
@@ -44,6 +47,10 @@ toleranceField.setFill("darkgrey")
 
 searchTolerance = 50
 comparisonDict = {}
+
+homePath = path.expanduser("~")
+imagePath = homePath + "/" + "Image-Respository/Images"
+thumbnailPath = homePath + "/" + "Image-Respository/Thumbnails"
 
 def createText(win, pos, string, color="black", face="helvetica", size=12, style="normal"):
     t = Text(pos, string)
@@ -70,10 +77,10 @@ def createLine(win, p1, p2, color="black", width=1, arrow="none"):
     l.draw(win)
 
 
-# clear all items but those in ex from the window
-def clear(win, ex=[]):
+# clear all items from the window, except for classes within exceptions
+def clear(win, exceptions=[]):
     for item in win.items[:]:
-        if str(item.__class__.__name__) not in ex:
+        if str(item.__class__.__name__) not in exceptions:
             item.undraw()
 
 
@@ -114,12 +121,12 @@ def setImageTable(lst):
 
 # load images into the list
 def loadImages():
-    return [Photo(f) for f in listdir("Images/") if ".png" in f]
+    return [Photo(f) for f in listdir(imagePath) if ".png" in f]
 
 
 # generate any new thumbnails required, resizing to fit in the border
 def createThumbnails(lst):
-    cache = [f for f in listdir("Thumbnails/") if ".png" in f]
+    cache = [f for f in listdir(thumbnailPath) if ".png" in f]
     for image in filter(lambda x : x.name not in cache, lst):
         name = image.name
         im = Image.open(image.path)
@@ -131,7 +138,7 @@ def createThumbnails(lst):
         else:
             im = im.resize((int(w * (362 / h)), 362))
 
-        im.save("Thumbnails/" + name)
+        im.save(thumbnailPath + name)
 
 
 # draws the top interface and buttons
@@ -156,6 +163,9 @@ def drawMenu(win):
     # 'delete' button
     createRectangle(win, Point(220, 25), Point(380, 65), fcolor=(color_rgb(60, 60, 60) if hoverDelete else "black"), ocolor=color_rgb(70, 102, 255), width=1)
     createText(win, Point(300, 45), "Delete Selection", color="white", size=16, style="bold")
+
+    if confirmDelete:
+        createText(win, Point(300, 75), "Click again to confirm", color="red", size=15)
 
     # 'deselect' button
     createRectangle(win, Point(450, 25), Point(580, 65), fcolor=(color_rgb(60, 60, 60) if hoverDeselect else "black"), ocolor=color_rgb(70, 102, 255), width=1)
@@ -192,7 +202,7 @@ def drawMenu(win):
     createRectangle(win, Point(1255, 30), Point(1305, 60), fcolor=(color_rgb(60, 60, 60) if hoverSet else "black"), ocolor=color_rgb(70, 102, 255), width=1)
     createText(win, Point(1280, 45), "Set", color="white", size=14, style="bold")
 
-    createText(win, Point(975, 250), "Search:", size=16)
+    createText(win, Point(950, 250), "Search Name:", size=16)
     createText(win, Point(1105, 45), "Tolerance:", size=16)
 
 
@@ -224,7 +234,7 @@ def addImages(lst):
     add_error_lst = []
 
     # list of existing images
-    cache = [f.split(".")[0] for f in listdir("Images/") if (".png" in f or ".jpg" in f or ".jpeg" in f)]
+    cache = [f.split(".")[0] for f in listdir(imagePath) if (".png" in f or ".jpg" in f or ".jpeg" in f)]
     lst2 = []
 
     #remove duplicates
@@ -244,9 +254,9 @@ def addImages(lst):
         name = path.split("/")[-1]
         if name.split(".")[0] not in cache: #new image
             im = Image.open(path)
-            im.save("Images/" + name.split(".")[0] + ".png")
+            im.save(imagePath + name.split(".")[0] + ".png")
 
-            images.append(Photo(path="Images/" + name.split(".")[0] + ".png"))
+            images.append(Photo(path=imagePath + name.split(".")[0] + ".png"))
             lst2.append(images[-1])
 
             # calculates the values needed for image searching
@@ -261,6 +271,9 @@ def addImages(lst):
 
 # filters the images for image searching and text searching
 def filterImages():
+    global scrollCount, confirmDelete
+    scrollCount = 0
+    confirmDelete = False
     return [im for im in images if textField.getText().lower() in im.name[:-4].lower() and comparisonDict[im.name] <= searchTolerance]
 
 
@@ -277,8 +290,11 @@ def compare(image1, image2):
     h2 = im2.histogram()
     p2 = image2.fullImage.getWidth() * image2.fullImage.getHeight()
 
-    # returns the average percent difference between each value of the histogram
-    return sum(map(lambda x, y: 0 if (x == 0 and y == 0) else (abs((x / p1) - (y / p2)) / (((x / p1) + (y / p2)) / 2)), h1, h2)) / len(h1) * 100
+    #function for calculating percent difference of two values
+    pd = lambda x,y : abs((x / p1) - (y / p2)) / (((x / p1) + (y / p2)) / 2)
+
+    # returns the percent difference between each value of the histogram, and takes the average of it
+    return sum(map(lambda x, y: 0 if (x == 0 and y == 0) else pd(x, y), h1, h2)) / len(h1) * 100
 
 
 # generates values for the dictionary of comparisons to the given image to search by
@@ -305,11 +321,13 @@ window.master.protocol("WM_DELETE_WINDOW", onClose)
 window.master.TK_SILENCE_DEPRECATION = 1
 
 #create directories
-rootPath = path.dirname(path.abspath(__file__))
-rootFiles = listdir(rootPath)
-for name in ["Thumbnails", "Images"]:
-    if name not in rootFiles:
-        mkdir(rootPath + "/" + name)
+homeFiles = listdir(homePath)
+if "Image-Respository" not in homeFiles:
+    mkdir(homePath + "/" + "Image-Respository")
+    mkdir(imagePath)
+    mkdir(thumbnailPath)
+imagePath += "/"
+thumbnailPath += "/"
 
 #initialize the images and comparisons
 images = loadImages()
@@ -324,7 +342,7 @@ toleranceField.setText(searchTolerance)
 
 while windowOpen:
     # clear entire window except the text fields
-    clear(window, ex=["Entry"])
+    clear(window, exceptions=["Entry"])
 
     # recalculate image positions
     setImageTable(filteredImages)
@@ -363,12 +381,18 @@ while windowOpen:
                 addImages(files)
                 filteredImages = filterImages()
             if inRect(click, Point(220, 25), Point(380, 65)): #delete
-                selectedImages = list(filter(lambda x : x.selected, images))
-                for image in selectedImages:
-                    images.remove(image)
-                    remove("Images/" + image.name)
-                    remove("Thumbnails/" + image.name)
-                filteredImages = filterImages()
+                if confirmDelete:
+                    selectedImages = list(filter(lambda x : x.selected, images))
+                    for image in selectedImages:
+                        images.remove(image)
+                        remove(imagePath + image.name)
+                        remove(thumbnailPath + image.name)
+                    filteredImages = filterImages()
+
+                # toggle the variable, allowing for confirmation
+                confirmDelete = not confirmDelete
+            else:
+                confirmDelete = False
             if inRect(click, Point(450, 25), Point(580, 65)): #deselect
                 for image in images:
                     image.selected = False
@@ -397,6 +421,7 @@ while windowOpen:
             for image in filteredImages:
                 if inRect(click, image.border[0], image.border[1]):
                     image.selected = not image.selected
+            confirmDelete = False
 
     # anytime the text search field is updated, recalculate the images
     curText = textField.getText()
