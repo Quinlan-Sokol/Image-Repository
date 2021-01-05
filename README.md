@@ -1,7 +1,7 @@
 # Image-Repository
 
 # Installation:
-1. Download **Python 3.7** from **python.org**
+1. Download **Python 3.7** from **python.org**, not Home Brew
 2. Download the four included files into a single folder
 3. Install the required libraries by running `$ pip install -r requirements.txt`
 
