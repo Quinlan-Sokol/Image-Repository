@@ -2,7 +2,7 @@
 
 # Installation:
 1. Download **Python 3.7** from **python.org**
-2. Download the three included files into a single folder
+2. Download the four included files into a single folder
 3. Install the required libraries by running `$ pip install -r requirements.txt`
 
 # Usage:
