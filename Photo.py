@@ -1,4 +1,5 @@
 from graphics import *
+from os import path as ospath
 
 # class for holding extra information about each image
 class Photo:
@@ -16,7 +17,7 @@ class Photo:
     def __init__(self, name="", path=""):
         # initialize the name and path based on how the Photo is constructed
         self.name = path.split("/")[-1] if name == "" else name
-        self.path = path if name == "" else "Images/" + name
+        self.path = path if name == "" else ospath.expanduser("~") + "/Image-Respository/Images/" + name
         self.fullImage = Image(Point(0,0), self.path)
 
     # draw the image and its border
@@ -33,5 +34,5 @@ class Photo:
         r.draw(win)
 
         self.thumbImage = Image(Point(int((self.border[0].x + self.border[1].x)/2)+1,
-                                      int((self.border[0].y + self.border[1].y)/2)+1), "Thumbnails/" + self.name)
+                                      int((self.border[0].y + self.border[1].y)/2)+1), ospath.expanduser("~") + "/Image-Respository/Thumbnails/" + self.name)
         self.thumbImage.draw(win)
